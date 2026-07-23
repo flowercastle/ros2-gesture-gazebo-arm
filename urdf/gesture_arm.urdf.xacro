@@ -1,0 +1,473 @@
+<?xml version="1.0"?>
+<robot name="gesture_arm" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:arg name="controllers_file" default=""/>
+
+  <xacro:macro name="simple_inertial" params="mass ixx iyy izz">
+    <inertial>
+      <mass value="${mass}"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="${ixx}" ixy="0" ixz="0" iyy="${iyy}" iyz="0" izz="${izz}"/>
+    </inertial>
+  </xacro:macro>
+
+  <!-- 全局材质 -->
+  <material name="mat_base_dark">
+    <color rgba="0.18 0.18 0.18 1"/>
+  </material>
+
+  <material name="mat_base_gray">
+    <color rgba="0.45 0.45 0.45 1"/>
+  </material>
+
+  <material name="mat_blue">
+    <color rgba="0.10 0.25 0.85 1"/>
+  </material>
+
+  <material name="mat_green">
+    <color rgba="0.10 0.75 0.25 1"/>
+  </material>
+
+  <material name="mat_orange">
+    <color rgba="0.90 0.45 0.10 1"/>
+  </material>
+
+  <material name="mat_red">
+    <color rgba="0.85 0.10 0.10 1"/>
+  </material>
+
+  <material name="mat_joint_dark">
+    <color rgba="0.07 0.07 0.07 1"/>
+  </material>
+
+  <material name="mat_finger_dark">
+    <color rgba="0.04 0.04 0.04 1"/>
+  </material>
+
+  <material name="mat_pad">
+    <color rgba="0.01 0.01 0.01 1"/>
+  </material>
+
+  <link name="world"/>
+
+  <!--
+    坐标设计说明：
+    base_link的顶部关节base_joint在z=0.10。
+    因此底座所有visual的最高点不能超过z=0.10，
+    否则会和turret_link视觉上重叠，看起来像零件错位。
+  -->
+  <link name="base_link">
+    <visual>
+      <origin xyz="0 0 0.025" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.24" length="0.05"/>
+      </geometry>
+      <material name="mat_base_dark"/>
+    </visual>
+
+    <visual>
+      <origin xyz="0 0 0.075" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.17" length="0.05"/>
+      </geometry>
+      <material name="mat_base_gray"/>
+    </visual>
+
+    <collision>
+      <origin xyz="0 0 0.05" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.18" length="0.10"/>
+      </geometry>
+    </collision>
+
+    <xacro:simple_inertial mass="2.0" ixx="0.02" iyy="0.02" izz="0.02"/>
+  </link>
+
+  <joint name="world_to_base" type="fixed">
+    <parent link="world"/>
+    <child link="base_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- turret_link的坐标原点位于base_joint，即世界z=0.10 -->
+  <link name="turret_link">
+    <visual>
+      <origin xyz="0 0 0.12" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.10" length="0.24"/>
+      </geometry>
+      <material name="mat_blue"/>
+    </visual>
+
+    <!-- 顶部肩关节外壳：正好放在shoulder_joint位置z=0.24 -->
+    <visual>
+      <origin xyz="0 0 0.24" rpy="1.5708 0 0"/>
+      <geometry>
+        <cylinder radius="0.12" length="0.12"/>
+      </geometry>
+      <material name="mat_joint_dark"/>
+    </visual>
+
+    <collision>
+      <origin xyz="0 0 0.12" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.10" length="0.24"/>
+      </geometry>
+    </collision>
+
+    <xacro:simple_inertial mass="1.0" ixx="0.01" iyy="0.01" izz="0.01"/>
+  </link>
+
+  <joint name="base_joint" type="revolute">
+    <parent link="base_link"/>
+    <child link="turret_link"/>
+    <origin xyz="0 0 0.10" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-3.14" upper="3.14" effort="100" velocity="1.5"/>
+    <dynamics damping="0.2" friction="0.1"/>
+  </joint>
+
+  <!-- upper_arm_link的坐标原点位于shoulder_joint -->
+  <link name="upper_arm_link">
+    <!-- 大臂主体：从x=0延伸到x=0.60 -->
+    <visual>
+      <origin xyz="0.30 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.60 0.08 0.08"/>
+      </geometry>
+      <material name="mat_green"/>
+    </visual>
+
+    <!-- 肩部随动外壳：正好围绕upper_arm_link原点 -->
+    <visual>
+      <origin xyz="0.00 0 0" rpy="1.5708 0 0"/>
+      <geometry>
+        <cylinder radius="0.105" length="0.13"/>
+      </geometry>
+      <material name="mat_joint_dark"/>
+    </visual>
+
+    <!-- 肘部外壳：正好围绕elbow_joint位置x=0.60 -->
+    <visual>
+      <origin xyz="0.60 0 0" rpy="1.5708 0 0"/>
+      <geometry>
+        <cylinder radius="0.095" length="0.11"/>
+      </geometry>
+      <material name="mat_joint_dark"/>
+    </visual>
+
+    <!-- 顶部装饰条：在主体上方，不改变结构 -->
+    <visual>
+      <origin xyz="0.30 0 0.055" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.42 0.035 0.020"/>
+      </geometry>
+      <material name="mat_joint_dark"/>
+    </visual>
+
+    <collision>
+      <origin xyz="0.30 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.60 0.08 0.08"/>
+      </geometry>
+    </collision>
+
+    <xacro:simple_inertial mass="0.8" ixx="0.01" iyy="0.04" izz="0.04"/>
+  </link>
+
+  <joint name="shoulder_joint" type="revolute">
+    <parent link="turret_link"/>
+    <child link="upper_arm_link"/>
+    <origin xyz="0 0 0.24" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-1.2" upper="1.2" effort="100" velocity="1.5"/>
+    <dynamics damping="0.2" friction="0.1"/>
+  </joint>
+
+  <!-- forearm_link的坐标原点位于elbow_joint -->
+  <link name="forearm_link">
+    <!-- 小臂主体：从x=0延伸到x=0.50 -->
+    <visual>
+      <origin xyz="0.25 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.50 0.07 0.07"/>
+      </geometry>
+      <material name="mat_orange"/>
+    </visual>
+
+    <!-- 肘部随动外壳：围绕forearm_link原点 -->
+    <visual>
+      <origin xyz="0.00 0 0" rpy="1.5708 0 0"/>
+      <geometry>
+        <cylinder radius="0.090" length="0.10"/>
+      </geometry>
+      <material name="mat_joint_dark"/>
+    </visual>
+
+    <!-- 腕部外壳：正好围绕wrist_joint位置x=0.50 -->
+    <visual>
+      <origin xyz="0.50 0 0" rpy="1.5708 0 0"/>
+      <geometry>
+        <cylinder radius="0.080" length="0.09"/>
+      </geometry>
+      <material name="mat_joint_dark"/>
+    </visual>
+
+    <!-- 顶部装饰条 -->
+    <visual>
+      <origin xyz="0.25 0 0.050" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.34 0.030 0.018"/>
+      </geometry>
+      <material name="mat_joint_dark"/>
+    </visual>
+
+    <collision>
+      <origin xyz="0.25 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.50 0.07 0.07"/>
+      </geometry>
+    </collision>
+
+    <xacro:simple_inertial mass="0.6" ixx="0.01" iyy="0.03" izz="0.03"/>
+  </link>
+
+  <joint name="elbow_joint" type="revolute">
+    <parent link="upper_arm_link"/>
+    <child link="forearm_link"/>
+    <origin xyz="0.60 0 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-1.5" upper="1.5" effort="100" velocity="1.5"/>
+    <dynamics damping="0.2" friction="0.1"/>
+  </joint>
+
+  <!-- wrist_link的坐标原点位于wrist_joint -->
+  <link name="wrist_link">
+    <!-- 腕部主体：从x=0延伸到x=0.30 -->
+    <visual>
+      <origin xyz="0.15 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.30 0.06 0.06"/>
+      </geometry>
+      <material name="mat_red"/>
+    </visual>
+
+    <!-- 腕部随动外壳：围绕wrist_link原点 -->
+    <visual>
+      <origin xyz="0.00 0 0" rpy="1.5708 0 0"/>
+      <geometry>
+        <cylinder radius="0.075" length="0.08"/>
+      </geometry>
+      <material name="mat_joint_dark"/>
+    </visual>
+
+    <!-- 夹爪基座：位于两个finger_joint共同的x=0.30处 -->
+    <visual>
+      <origin xyz="0.30 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.075 0.13 0.065"/>
+      </geometry>
+      <material name="mat_joint_dark"/>
+    </visual>
+
+    <collision>
+      <origin xyz="0.15 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.30 0.06 0.06"/>
+      </geometry>
+    </collision>
+
+    <xacro:simple_inertial mass="0.4" ixx="0.005" iyy="0.015" izz="0.015"/>
+  </link>
+
+  <joint name="wrist_joint" type="revolute">
+    <parent link="forearm_link"/>
+    <child link="wrist_link"/>
+    <origin xyz="0.50 0 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-1.5" upper="1.5" effort="80" velocity="1.5"/>
+    <dynamics damping="0.2" friction="0.1"/>
+  </joint>
+
+  <!--
+    夹爪修正：
+    left_finger_joint本身已经在y=+0.04，
+    right_finger_joint本身已经在y=-0.04。
+    所以finger_link内部visual的y应为0，不能再额外写+/-0.02，
+    否则视觉上会二次偏移。
+  -->
+  <link name="left_finger_link">
+    <visual>
+      <origin xyz="0.10 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.20 0.035 0.035"/>
+      </geometry>
+      <material name="mat_finger_dark"/>
+    </visual>
+
+    <visual>
+      <origin xyz="0.20 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.04 0.055 0.045"/>
+      </geometry>
+      <material name="mat_pad"/>
+    </visual>
+
+    <collision>
+      <origin xyz="0.10 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.20 0.035 0.035"/>
+      </geometry>
+    </collision>
+
+    <xacro:simple_inertial mass="0.1" ixx="0.001" iyy="0.001" izz="0.001"/>
+  </link>
+
+  <joint name="left_finger_joint" type="revolute">
+    <parent link="wrist_link"/>
+    <child link="left_finger_link"/>
+    <origin xyz="0.30 0.04 0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="0.0" upper="0.7" effort="20" velocity="1.0"/>
+    <dynamics damping="0.1" friction="0.05"/>
+  </joint>
+
+  <link name="right_finger_link">
+    <visual>
+      <origin xyz="0.10 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.20 0.035 0.035"/>
+      </geometry>
+      <material name="mat_finger_dark"/>
+    </visual>
+
+    <visual>
+      <origin xyz="0.20 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.04 0.055 0.045"/>
+      </geometry>
+      <material name="mat_pad"/>
+    </visual>
+
+    <collision>
+      <origin xyz="0.10 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.20 0.035 0.035"/>
+      </geometry>
+    </collision>
+
+    <xacro:simple_inertial mass="0.1" ixx="0.001" iyy="0.001" izz="0.001"/>
+  </link>
+
+  <joint name="right_finger_joint" type="revolute">
+    <parent link="wrist_link"/>
+    <child link="right_finger_link"/>
+    <origin xyz="0.30 -0.04 0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-0.7" upper="0.0" effort="20" velocity="1.0"/>
+    <dynamics damping="0.1" friction="0.05"/>
+  </joint>
+
+  <ros2_control name="GazeboSimSystem" type="system">
+    <hardware>
+      <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+    </hardware>
+
+    <joint name="base_joint">
+      <command_interface name="position">
+        <param name="min">-3.14</param>
+        <param name="max">3.14</param>
+      </command_interface>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+
+    <joint name="shoulder_joint">
+      <command_interface name="position">
+        <param name="min">-1.2</param>
+        <param name="max">1.2</param>
+      </command_interface>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+
+    <joint name="elbow_joint">
+      <command_interface name="position">
+        <param name="min">-1.5</param>
+        <param name="max">1.5</param>
+      </command_interface>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+
+    <joint name="wrist_joint">
+      <command_interface name="position">
+        <param name="min">-1.5</param>
+        <param name="max">1.5</param>
+      </command_interface>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+
+    <joint name="left_finger_joint">
+      <command_interface name="position">
+        <param name="min">0.0</param>
+        <param name="max">0.7</param>
+      </command_interface>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+
+    <joint name="right_finger_joint">
+      <command_interface name="position">
+        <param name="min">-0.7</param>
+        <param name="max">0.0</param>
+      </command_interface>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+  </ros2_control>
+
+
+  <!--
+    HCI展示模式：关闭各link重力。
+    原因：该虚拟机械臂是水平悬臂结构，如果启用重力，
+    在控制器初始化或无持续指令时可能会发生自发倾斜/下垂/回弹。
+    关闭重力后，机械臂只响应手势控制指令，更适合课堂演示。
+  -->
+  <gazebo reference="base_link">
+    <gravity>false</gravity>
+  </gazebo>
+
+  <gazebo reference="turret_link">
+    <gravity>false</gravity>
+  </gazebo>
+
+  <gazebo reference="upper_arm_link">
+    <gravity>false</gravity>
+  </gazebo>
+
+  <gazebo reference="forearm_link">
+    <gravity>false</gravity>
+  </gazebo>
+
+  <gazebo reference="wrist_link">
+    <gravity>false</gravity>
+  </gazebo>
+
+  <gazebo reference="left_finger_link">
+    <gravity>false</gravity>
+  </gazebo>
+
+  <gazebo reference="right_finger_link">
+    <gravity>false</gravity>
+  </gazebo>
+
+  <gazebo>
+    <plugin filename="libgz_ros2_control-system.so"
+            name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+      <parameters>$(arg controllers_file)</parameters>
+    </plugin>
+  </gazebo>
+
+</robot>

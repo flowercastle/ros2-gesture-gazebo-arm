@@ -1,0 +1,29 @@
+# ROS 2 / colcon
+build/
+install/
+log/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# ROS recordings
+*.bag
+*.db3
+*.mcap
+
+# Large demo videos should be uploaded to GitHub Releases
+*.mp4
+*.mkv
+*.avi
